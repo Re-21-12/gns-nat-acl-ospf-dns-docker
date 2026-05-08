@@ -1,0 +1,12 @@
+$TTL 86400
+@   IN  SOA ns1.dominio.local. admin.dominio.local. (
+            2024010101
+            3600
+            1800
+            604800
+            86400 )
+
+@       IN  NS      ns1.dominio.local.
+ns1     IN  A       10.1.0.10
+@       IN  A       10.1.0.11
+www     IN  A       10.1.0.11

@@ -1,0 +1,36 @@
+services:
+
+  # ─────────────────────────────────────────────
+  # DNS – Bind9
+  # ─────────────────────────────────────────────
+  dns:
+    build: ./dns-image
+    container_name: dns-server
+    restart: unless-stopped
+    ports:
+      - "53:53/udp"
+      - "53:53/tcp"
+    networks:
+      lan1:
+        ipv4_address: 10.1.0.10
+
+  # ─────────────────────────────────────────────
+  # HTTP – nginx (dos sitios virtuales)
+  # ─────────────────────────────────────────────
+  web:
+    build: ./web-image
+    container_name: web-server
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    networks:
+      lan1:
+        ipv4_address: 10.1.0.11
+
+networks:
+  lan1:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.1.0.0/24
+          gateway: 10.1.0.1

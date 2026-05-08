@@ -1,0 +1,12 @@
+$TTL 86400
+@   IN  SOA ns1.dominio.com. admin.dominio.com. (
+            2024010101 ; Serial
+            3600 ; Refresh
+            1800 ; Retry
+            604800 ; Expire
+            86400 ) ; Negative TTL
+
+@       IN  NS      ns1.dominio.com.
+ns1     IN  A       10.1.0.10
+@       IN  A       10.0.12.1
+www     IN  A       10.0.12.1

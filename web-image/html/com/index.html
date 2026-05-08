@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Sitio Público</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      padding: 48px 64px;
+      text-align: center;
+      max-width: 480px;
+    }
+    .badge {
+      display: inline-block;
+      background: rgba(56,139,253,0.15);
+      color: #58a6ff;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      border: 1px solid #388bfd;
+      margin-bottom: 20px;
+    }
+    h1 { color: #58a6ff; font-size: 28px; margin-bottom: 12px; }
+    p  { color: #8b949e; line-height: 1.6; margin-top: 8px; }
+    .info {
+      margin-top: 24px;
+      background: #21262d;
+      border-radius: 8px;
+      padding: 12px 20px;
+      font-size: 13px;
+      color: #79c0ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">dominio.com</div>
+    <h1>Sitio Público de Ejemplo</h1>
+    <p>Accesible desde <strong>LAN1</strong> directamente</p>
+    <p>y desde <strong>LAN2</strong> a través de NAT en R1.</p>
+    <div class="info">Proyecto de redes · IPv4/IPv6 · Docker</div>
+  </div>
+</body>
+</html>

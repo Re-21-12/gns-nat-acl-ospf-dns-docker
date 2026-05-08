@@ -1,0 +1,4 @@
+zone "dominio.com" {
+    type master;
+    file "/etc/bind/zones/db.dominio.com.internal"; 
+};

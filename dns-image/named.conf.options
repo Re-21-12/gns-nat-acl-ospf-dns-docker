@@ -1,0 +1,21 @@
+options {
+    directory "/var/cache/bind";
+
+    // Reenvío a DNS externos si no se encuentra la zona local
+    forwarders {
+        8.8.8.8;
+        1.1.1.1;
+    };
+    // forward first intenta local y luego afuera
+    forward first;
+
+    listen-on { any; };
+    listen-on-v6 { any; };
+
+    // IMPORTANTE: Permitir consultas de cualquier IP para que el NAT no bloquee
+    allow-query { any; };
+    allow-recursion { any; };
+    recursion yes;
+
+    dnssec-validation no;
+};
