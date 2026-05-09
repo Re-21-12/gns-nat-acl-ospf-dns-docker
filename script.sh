@@ -81,12 +81,19 @@ nslookup dominio.local 10.1.0.10
 # prueba 3 por tcp y no udp
 nslookup -vc dominio.com 10.0.12.1
 
-# prueab 4 
+# prueab 4 desde el cliente 
 nslookup dominio.com 10.0.12.1
 nslookup dominio.com 10.1.0.10
 
 nslookup dominio.local 10.1.0.10
 nslookup dominio.local 10.0.12.1
+
+# prueba 5 desde el dns
+dig @10.1.0.10 dominio.local +short
+
+# prueba 6 desde el web server
+nslookup dominio.local 10.1.0.10
+wget -qO- --header='Host: dominio.local' http://10.1.0.11/
 
 ## routers
 show ip ospf neighbor # en cada router
@@ -96,10 +103,125 @@ show ipv6 route ospf
 
 # verificar nats en R1
 show ip nat translations 
+# verificar ACLs
+show access-lists
+
 
 # debug log
 debug ip nat
 debug ip packet detail
-show access-lists
+
+
 
 undebug all
+
+# Asignacion de ipv6
+# DNS server → fd00:1::10
+docker exec $DNS_ID bash -c "
+ip -6 addr add fd00:1::10/64 dev eth0 2>/dev/null || true
+ip -6 route add default via fd00:1::1 2>/dev/null || true
+echo 'DNS IPv6:'
+ip addr show eth0 | grep 'fd00:1::10'
+"
+
+# Web server → fd00:1::11
+docker exec $WEB_ID sh -c "
+ip -6 addr add fd00:1::11/64 dev eth0 2>/dev/null || true
+ip -6 route add default via fd00:1::1 2>/dev/null || true
+echo 'Web IPv6:'
+ip addr show eth0 | grep 'fd00:1::11'
+"
+
+# Cliente → fd00:2::10
+docker exec $CLIENT_ID sh -c "
+ip -6 addr add fd00:2::10/64 dev eth0 2>/dev/null || true
+ip -6 route add default via fd00:2::1 2>/dev/null || true
+echo 'Cliente IPv6:'
+ip addr show eth0 | grep 'fd00:2::10'
+"
+
+
+# Corregir db.dominio.local
+docker exec $DNS_ID bash -c "cat > /etc/bind/zones/db.dominio.local << 'EOF'
+\$TTL 86400
+@   IN  SOA ns1.dominio.local. admin.dominio.local. (
+            2024010102
+            3600
+            1800
+            604800
+            86400 )
+@       IN  NS      ns1.dominio.local.
+ns1     IN  A       10.1.0.10
+@       IN  A       10.1.0.11
+www     IN  A       10.1.0.11
+@       IN  AAAA    fd00:1::11
+www     IN  AAAA    fd00:1::11
+ns1     IN  AAAA    fd00:1::10
+EOF"
+
+# Corregir db.dominio.com.external
+docker exec $DNS_ID bash -c "cat > /etc/bind/zones/db.dominio.com.external << 'EOF'
+\$TTL 86400
+@   IN  SOA ns1.dominio.com. admin.dominio.com. (
+            2024010102
+            3600
+            1800
+            604800
+            86400 )
+@       IN  NS      ns1.dominio.com.
+ns1     IN  A       10.1.0.10
+@       IN  A       10.0.12.1
+www     IN  A       10.0.12.1
+@       IN  AAAA    fd00:12::1
+www     IN  AAAA    fd00:12::1
+EOF"
+
+# Corregir db.dominio.com.internal
+docker exec $DNS_ID bash -c "cat > /etc/bind/zones/db.dominio.com.internal << 'EOF'
+\$TTL 86400
+@   IN  SOA ns1.dominio.com. admin.dominio.com. (
+            2024010102
+            3600
+            1800
+            604800
+            86400 )
+@       IN  NS      ns1.dominio.com.
+ns1     IN  A       10.1.0.10
+@       IN  A       10.1.0.11
+www     IN  A       10.1.0.11
+@       IN  AAAA    fd00:1::11
+www     IN  AAAA    fd00:1::11
+EOF"
+
+# Pruebas con ipv6
+DNS_ID=$(docker ps | grep dns-server | awk '{print $1}')
+CLIENT_ID=$(docker ps | grep cliente | awk '{print $1}')
+
+echo "=== LAN1 - dominio.local A ==="
+docker exec $DNS_ID bash -c "dig @10.1.0.10 dominio.local A +short"
+
+echo "=== LAN1 - dominio.local AAAA ==="
+docker exec $DNS_ID bash -c "dig @10.1.0.10 dominio.local AAAA +short"
+
+echo "=== LAN1 - dominio.com A ==="
+docker exec $DNS_ID bash -c "dig @10.1.0.10 dominio.com A +short"
+
+echo "=== LAN1 - dominio.com AAAA ==="
+docker exec $DNS_ID bash -c "dig @10.1.0.10 dominio.com AAAA +short"
+
+echo "=== LAN2 - dominio.com A (via NAT) ==="
+docker exec $CLIENT_ID sh -c "nslookup dominio.com 10.0.12.1"
+
+echo "=== LAN2 - dominio.local NO debe resolver ==="
+docker exec $CLIENT_ID sh -c "nslookup dominio.local 10.0.12.1"
+
+#verificacion post ipv6
+WEB_ID=$(docker ps | grep web-server | awk '{print $1}')
+CLIENT_ID=$(docker ps | grep cliente | awk '{print $1}')
+
+# HTTP desde LAN1
+docker exec $WEB_ID sh -c "wget -qO- --header='Host: dominio.local' http://10.1.0.11/ | grep title"
+docker exec $WEB_ID sh -c "wget -qO- --header='Host: dominio.com' http://10.1.0.11/ | grep title"
+
+# HTTP desde LAN2 via NAT
+docker exec $CLIENT_ID sh -c "wget -qO- --header='Host: dominio.com' http://10.0.12.1/ | grep title"
